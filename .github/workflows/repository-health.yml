@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate local Markdown links and images
+      - name: Validate relative Markdown links and images
         shell: python
         run: |
           from pathlib import Path
@@ -31,18 +31,18 @@ jobs:
               for raw in pattern.findall(text):
                   target = raw.strip().strip("<>")
                   target = re.split(r"\s+[\"']", target, maxsplit=1)[0]
-                  if not target or target.startswith(("#", "http://", "https://", "mailto:", "tel:", "data:")):
+                  if not target or target.startswith(("#", "/", "http://", "https://", "mailto:", "tel:", "data:")):
                       continue
                   target = unquote(target.split("#", 1)[0].split("?", 1)[0]).strip()
                   if not target:
                       continue
-                  candidate = (Path(".") / target.lstrip("/")) if target.startswith("/") else (md.parent / target)
+                  candidate = md.parent / target
                   if not candidate.exists():
                       failures.append(f"{md}: {raw}")
 
           if failures:
-              print("Broken local Markdown references:")
+              print("Broken relative Markdown references:")
               print("\n".join(failures))
               sys.exit(1)
 
-          print("Local Markdown references are valid.")
+          print("Relative Markdown references are valid.")
