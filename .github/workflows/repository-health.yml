@@ -1,24 +1,48 @@
 name: Repository Health
-on: [push, pull_request, workflow_dispatch]
-permissions: {contents: read}
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   local-markdown-links:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate local Markdown references
+      - name: Validate local Markdown links and images
         shell: python
         run: |
           from pathlib import Path
           from urllib.parse import unquote
-          import re, sys
-          p=re.compile(r"!?[[^]]*](([^)]+))"); bad=[]
+          import re
+          import sys
+
+          pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+          failures = []
+
           for md in Path(".").rglob("*.md"):
-              for raw in p.findall(md.read_text(encoding="utf-8",errors="replace")):
-                  t=raw.strip().strip("<>")
-                  if not t or t.startswith(("#","http://","https://","mailto:","tel:","data:")): continue
-                  t=unquote(t.split("#",1)[0].split("?",1)[0]).strip()
-                  if not t: continue
-                  c=Path(".")/t.lstrip("/") if t.startswith("/") else md.parent/t
-                  if not c.exists(): bad.append(f"{md}: {raw}")
-          if bad: print("Broken local Markdown references:\n"+"\n".join(bad)); sys.exit(1)
+              if ".git" in md.parts:
+                  continue
+              text = md.read_text(encoding="utf-8", errors="replace")
+              for raw in pattern.findall(text):
+                  target = raw.strip().strip("<>")
+                  target = re.split(r"\s+[\"']", target, maxsplit=1)[0]
+                  if not target or target.startswith(("#", "http://", "https://", "mailto:", "tel:", "data:")):
+                      continue
+                  target = unquote(target.split("#", 1)[0].split("?", 1)[0]).strip()
+                  if not target:
+                      continue
+                  candidate = (Path(".") / target.lstrip("/")) if target.startswith("/") else (md.parent / target)
+                  if not candidate.exists():
+                      failures.append(f"{md}: {raw}")
+
+          if failures:
+              print("Broken local Markdown references:")
+              print("\n".join(failures))
+              sys.exit(1)
+
+          print("Local Markdown references are valid.")
