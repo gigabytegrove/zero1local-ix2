@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes: {label: Version or commit}
+    validations: {required: true}
+  - type: textarea
+    id: hardware
+    attributes: {label: ix2 hardware / storage environment}
+    validations: {required: true}
+  - type: textarea
+    id: problem
+    attributes: {label: What happened?}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected behavior}
+    validations: {required: true}
+  - type: textarea
+    id: reproduce
+    attributes: {label: Reproduction steps}
+    validations: {required: true}
+  - type: textarea
+    id: logs
+    attributes: {label: Relevant sanitized logs}

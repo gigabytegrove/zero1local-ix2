@@ -1,0 +1,24 @@
+name: Repository Health
+on: [push, pull_request, workflow_dispatch]
+permissions: {contents: read}
+jobs:
+  local-markdown-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate local Markdown references
+        shell: python
+        run: |
+          from pathlib import Path
+          from urllib.parse import unquote
+          import re, sys
+          p=re.compile(r"!?[[^]]*](([^)]+))"); bad=[]
+          for md in Path(".").rglob("*.md"):
+              for raw in p.findall(md.read_text(encoding="utf-8",errors="replace")):
+                  t=raw.strip().strip("<>")
+                  if not t or t.startswith(("#","http://","https://","mailto:","tel:","data:")): continue
+                  t=unquote(t.split("#",1)[0].split("?",1)[0]).strip()
+                  if not t: continue
+                  c=Path(".")/t.lstrip("/") if t.startswith("/") else md.parent/t
+                  if not c.exists(): bad.append(f"{md}: {raw}")
+          if bad: print("Broken local Markdown references:\n"+"\n".join(bad)); sys.exit(1)
