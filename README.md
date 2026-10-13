@@ -101,6 +101,10 @@ The final product goal is for Zero1Local-ix2 to own the appliance experience:
 
 Lenovo LifeLine is transitional and is not intended to remain part of normal day-to-day administration.
 
+## Google Drive and Syncria product direction
+
+Zero1Local-ix2 will **not** embed a native Google Drive OAuth or synchronization engine. The planned [Syncria](https://github.com/gigabytegrove/syncria) companion (**Coming soon**) may operate on a separate Linux/Windows or Docker-capable host and access explicitly authorized ix2 SMB/NFS shares. The ix2 appliance does **not** need Docker or a built-in Syncria runtime, and this roadmap does not assert a working connector exists yet.
+
 ## License
 
 License information will be published with the public project.
