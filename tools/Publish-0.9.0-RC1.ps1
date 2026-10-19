@@ -40,8 +40,12 @@ if ($ghcmd) {
     $gh = $candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
     if (!$gh) { throw "GitHub CLI installed, but gh.exe isn't in the current PATH. Reopen PowerShell and rerun." }
 }
+$previousErrorMode = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 & $gh auth status -h github.com
-if ($LASTEXITCODE -ne 0) {
+$authFailed = $LASTEXITCODE -ne 0
+$ErrorActionPreference = $previousErrorMode
+if ($authFailed) {
     Write-Host "Authenticate to GitHub in your browser (no token or password pasted here)."
     & $gh auth login --hostname github.com --git-protocol https --web
     if ($LASTEXITCODE -ne 0) { throw "GitHub authentication failed." }
@@ -67,8 +71,11 @@ $notesPath = Join-Path $env:TEMP ('ix2-v090-rc1-release-' + [guid]::NewGuid().To
 [IO.File]::WriteAllText($notesPath, $notes, (New-Object System.Text.UTF8Encoding($false)))
 try {
     # Only create the release when the tag does not already have one. Never overwrite existing assets.
+    $previousErrorMode = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     $view = & $gh release view $Tag --repo $Repo --json tagName 2>$null
     $exists = $LASTEXITCODE -eq 0
+    $ErrorActionPreference = $previousErrorMode
     if (!$exists) {
         Write-Host "Publishing GitHub prerelease $Tag ..."
         & $gh release create $Tag $Archive --repo $Repo --target main --title 'Zero1Local-ix2 v0.9.0-rc1 (Beta)' --notes-file $notesPath --prerelease --latest=false
