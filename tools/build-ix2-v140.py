@@ -115,12 +115,33 @@ def build(base, frontend, output):
             'authenticated release ZIP upload route')
         s=one_replace(s, "server_version = 'Zero1Local-ix2/0.9.0-rc1'",
                       "server_version = 'Zero1Local-ix2/0.9.1-rc2'", 'HTTP server version')
+        s=one_replace(s,
+            "        if path=='/api/storage': return self.send_json(c.storage(sys.modules[__name__]))",
+            "        if path=='/api/storage': return self.send_json(c.storage(sys.modules[__name__]))\n"
+            "        if path=='/api/storage/raid1/status':\n"
+            "            import ix2_raid_status\n"
+            "            return self.send_json(ix2_raid_status.status(sys.modules[__name__]))",
+            'main data RAID status')
+        first="        if path=='/api/storage/raid1/scrub' and method=='POST':"
+        next_rule="        if path in ('/api/storage/raid1/create','/api/storage/raid1/add'):"
+        start=s.index(first); end=s.index(next_rule,start)
+        s=s[:start]+"""        if path=='/api/storage/raid1/scrub' and method=='POST':
+            import ix2_raid_status
+            if not ix2_raid_status.may_check(sys.modules[__name__]):
+                return self.send_json({'error':'Main Storage /dev/md1 is not a mirrored RAID1 array with available consistency checking'},409)
+            try:
+                with open('/sys/block/md1/md/sync_action','w') as f: f.write('check\\n')
+                return self.send_json({'ok':True,'action':'check','array':'md1'})
+            except Exception as e: return self.send_json({'error':str(e)},409)
+"""+s[end:]
         p.write_text(s)
         p=root/'current'/'rc17_compat.py'; s=p.read_text()
         s=one_replace(s,"PRODUCT_VERSION = '0.9.0-rc1 (Zero1Local v1.4 backport)'", "PRODUCT_VERSION = '0.9.1-rc2 (Zero1Local v1.4 UI compatibility preview)'",'version label')
         p.write_text(s)
         p=root/'current'/'ix2_update_local.py'
         p.write_bytes((Path(__file__).resolve().parents[1]/'src'/'ix2_update_local.py').read_bytes())
+        p=root/'current'/'ix2_raid_status.py'
+        p.write_bytes((Path(__file__).resolve().parents[1]/'src'/'ix2_raid_status.py').read_bytes())
         p=root/'install-update.sh'; p.write_text(install_patch(p.read_text()))
         records=[]
         for f in sorted((root/'current').rglob('*')):
