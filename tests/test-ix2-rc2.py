@@ -24,6 +24,10 @@ with zipfile.ZipFile(PACKAGE) as z:
     for n in ('current/server.py','current/rc17_compat.py','current/ix2_update_local.py','current/rc17_write_compat.py'):
         compile(z.read(n),n,'exec')
     assert b'/api/update/upload' in z.read('current/server.py')
+    assert b"/api/storage/raid1/status" in z.read('current/server.py')
+    assert b"/sys/block/md0/md/sync_action" not in z.read('current/server.py')
+    assert 'current/ix2_raid_status.py' in names
+    compile(z.read('current/ix2_raid_status.py'),'current/ix2_raid_status.py','exec')
     assert b"VERSION='0.9.1-rc2'" in z.read('install-update.sh')
     with tempfile.TemporaryDirectory() as td:
         p=pathlib.Path(td)/'install-update.sh';p.write_bytes(z.read('install-update.sh'))
