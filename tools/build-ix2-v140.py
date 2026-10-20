@@ -106,6 +106,19 @@ def build(base, frontend, output):
         v=root/'current'/'VERSION'; v.write_text(VERSION+'\n')
         p=root/'current'/'server.py'; s=p.read_text()
         s=one_replace(s,"IX2_RELEASE = '0.9.0-rc1'", "IX2_RELEASE = '0.9.1-rc2'",'server release ID')
+        old_parser=r"""def _version_tuple(value):
+    nums = re.findall(r'\d+', to_text(value))
+    return tuple([int(x) for x in nums[:3]] + [0] * max(0, 3-len(nums[:3])))"""
+        new_parser=r"""def _version_tuple(value):
+    version=to_text(value).strip()
+    match=re.match(r'^[vV]?(\d+)\.(\d+)\.(\d+)(?:[-.]?(alpha|beta|rc|a|b)(\d*))?',version,re.I)
+    if match:
+        kind=to_text(match.group(4) or '').lower()
+        stage={'a':0,'alpha':0,'b':1,'beta':1,'rc':2}.get(kind,3)
+        return (int(match.group(1)),int(match.group(2)),int(match.group(3)),stage,int(match.group(5) or 0))
+    nums=re.findall(r'\d+',version)
+    return tuple([int(x) for x in nums[:3]]+[0]*max(0,3-len(nums[:3]))+[3,0])"""
+        s=one_replace(s,old_parser,new_parser,'correct beta/RC semantic ordering')
         s=one_replace(s,
             "        if path=='/api/files/upload' and method=='POST':",
             "        if path=='/api/update/upload' and method=='POST':\n"
