@@ -23,6 +23,14 @@ with zipfile.ZipFile(PACKAGE) as z:
     assert z.read('current/web/app.js')==(FRONT/'app.js').read_bytes()
     for n in ('current/server.py','current/rc17_compat.py','current/ix2_update_local.py','current/rc17_write_compat.py'):
         compile(z.read(n),n,'exec')
+    import types
+    runtime=types.ModuleType('ix2_version_test')
+    runtime.__file__='server.py'
+    exec(compile(z.read('current/server.py'),'server.py','exec'),runtime.__dict__)
+    for newer,older in [('0.9.1-rc3','0.9.1-rc2'),('0.9.1','0.9.1-rc99'),
+                        ('0.9.1-rc1','0.9.1-beta9'),('0.9.1-beta2','0.9.1-alpha10'),
+                        ('0.9.1-rc2','0.9.0')]:
+        assert runtime._version_tuple(newer)>runtime._version_tuple(older), 'incorrect RC ordering'
     assert b'/api/update/upload' in z.read('current/server.py')
     assert b"/api/storage/raid1/status" in z.read('current/server.py')
     assert b"/sys/block/md0/md/sync_action" not in z.read('current/server.py')
