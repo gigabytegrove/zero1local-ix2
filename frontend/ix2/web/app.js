@@ -1787,6 +1787,7 @@ function renderUpdatesPage(u){
   document.getElementById('content').innerHTML=`<section class="screen updates-screen">
     ${heading('System','Software Updates','See what is installed, what is new, and exactly what happens while an update is installed.',updateCheckInFlight?'<button class="btn" disabled>Checking…</button>':'<button class="btn" data-action="update-check-now">Check now</button>')}
     ${updateHeroView(u)}
+    ${IX2_HARDWARE_PORT?`<section class="content-panel"><h3>Install a verified release ZIP</h3><p>If this ix2 cannot download GitHub release assets because of its legacy TLS stack, download the ZIP on your computer, then upload it here. Zero1Local verifies it against the SHA-256 in the selected GitHub release before installing.</p><input id="ix2VerifiedUpdateFile" type="file" accept=".zip,application/zip" hidden><button type="button" class="btn btn-primary" data-action="ix2-pick-update-zip" ${u.available?.ready_for_update?'':'disabled'}>Choose verified update ZIP</button></section>`:''}
     ${updateApplyView(u)}
     ${av?`<div class="update-main-grid"><section class="content-panel update-release-card">${sectionTitle(`What’s new in v${esc(av.version)}`,av.published_at?`Published ${esc(fmtDate(av.published_at))}`:'Release notes from GitHub')}<div class="update-release-notes">${safeReleaseNotes(notes)}</div>${av.asset_name?`<div class="update-package-line"><span>${icon('check',16)}</span><div><b>Install package found</b><small>${esc(av.asset_name)}${av.asset_size?` · ${fmtBytes(av.asset_size)}`:''}</small></div></div>`:''}</section><section class="content-panel update-readiness-card">${sectionTitle('Before installing','Zero1Local checks the NAS before it changes the active version.')}${updateSafetyChecks(u)}<div class="update-rollback-copy">${icon('recovery',18)}<div><b>Rollback protection</b><small>The new version is activated transactionally. If activation or health verification fails, Zero1Local attempts to return to the previous working version.</small></div></div></section></div>`:''}
     <div class="update-secondary-grid"><section class="content-panel">${sectionTitle('Update preferences','Choose how Zero1Local checks for and installs future updates.')}<div class="settings-list"><label class="switch-row"><div><b>Check for updates automatically</b><small>Zero1Local checks GitHub in the background and lets you know when a new version is available.</small></div><span class="switch"><input id="updateAutoCheck" type="checkbox" ${u.auto_check!==false?'checked':''}><i></i></span></label><div class="settings-row"><div><b>How often should Zero1Local check?</b><small>This only checks for new versions. It does not install anything.</small></div><select id="updateInterval">${[1,3,6,12,24].map(x=>`<option value="${x}" ${Number(u.interval_hours||6)===x?'selected':''}>Every ${x} hour${x===1?'':'s'}</option>`).join('')}</select></div><div class="settings-row"><div><b>Installing updates</b><small>“Ask me first” is recommended. Automatic installation still runs safety checks and rollback protection.</small></div><select id="updateInstallMode"><option value="manual" ${installMode==='manual'?'selected':''}>Ask me first</option><option value="automatic" ${installMode==='automatic'?'selected':''}>Install automatically</option></select></div><div class="settings-row"><div><b>When should automatic updates install?</b><small>Uses the NAS local time and only applies if automatic installation is enabled.</small></div><select id="updateInstallHour" ${installMode==='automatic'?'':'disabled'}>${Array.from({length:24},(_,h)=>`<option value="${h}" ${Number(u.install_hour??3)===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select></div></div><div class="panel-actions"><button class="btn btn-primary" data-action="update-settings-save">Save preferences</button></div><details class="advanced update-advanced-settings"><summary>Advanced release channel</summary><div class="advanced-body"><div class="settings-row"><div><b>Release channel</b><small>Stable is recommended for normal NAS use. Beta/RC and Alpha may be less tested.</small></div><select id="updateChannel"><option value="stable" ${u.channel==='stable'?'selected':''}>Stable (recommended)</option><option value="beta" ${u.channel==='beta'?'selected':''}>Beta / Release Candidate</option><option value="alpha" ${u.channel==='alpha'?'selected':''}>Alpha</option></select></div></div></details></section>
@@ -4112,6 +4113,12 @@ async function handleAction(target) {
     try { await refreshUpdatesFromGitHub(); } catch(e) { flash(e.message,'bad'); }
     return;
   }
+  if (action === 'ix2-pick-update-zip' && IX2_HARDWARE_PORT) {
+    document.getElementById('ix2VerifiedUpdateFile')?.click(); return;
+  }
+  if (action === 'update-install' && IX2_HARDWARE_PORT) {
+    document.getElementById('ix2VerifiedUpdateFile')?.click(); return;
+  }
   if (action === 'update-install') {
     const v=target.dataset.version||'the selected release';
     await confirmAction(`Install Zero1Local v${v}?`,'Zero1Local will download the release from GitHub, verify the package, check this NAS, and then install it. After the update starts, this browser will move to the independent Update Monitor so progress remains visible while the normal administrator session restarts. If the new version cannot activate safely, the transactional installer attempts to return to the previous working version.','Install now',async()=>{
@@ -4223,6 +4230,30 @@ async function handleAction(target) {
 
 document.addEventListener('change',e=>{
   const target=e.target;
+  if(IX2_HARDWARE_PORT && target?.id==='ix2VerifiedUpdateFile'){
+    const file=target.files?.[0]; target.value='';
+    if(!file)return;
+    if(file.size<1 || file.size>16*1024*1024){flash('ZIP size must be between 1 byte and 16 MiB','bad');return;}
+    const update=window.__zero1Updates?.available;
+    if(!update?.ready_for_update || !String(update.asset_digest||'').startsWith('sha256:')){
+      flash('Check the GitHub update feed before uploading a release.','bad'); return;
+    }
+    if(file.name!==update.asset_name){flash('Select the exact published release ZIP: '+update.asset_name,'bad');return;}
+    confirmAction('Install verified Zero1Local-ix2 v'+update.version+'?',
+      'The selected ZIP will be uploaded directly to this NAS, verified byte-for-byte against its GitHub release SHA-256, then installed with rollback protection. Storage and RAID will not be modified.',
+      'Verify and install',async()=>{
+        const response=await fetch('/api/update/upload',{
+          method:'POST',credentials:'same-origin',
+          headers:{'Content-Type':'application/zip','X-Zero1Local-Request':'1'},
+          body:file
+        });
+        let result={};try{result=await response.json();}catch(_){}
+        if(!response.ok||!result.ok)throw new Error(result.error||'Update upload rejected');
+        closeModal();
+        flash('Update verified. Installing '+result.version+'; this page may briefly disconnect.','good');
+        await updatesPage();
+      });return;
+  }
   if(target?.matches?.('[data-mobile-manual-file]')){
     const map=window.__zero1ManualSelection instanceof Map?window.__zero1ManualSelection:new Map(),key=String(target.dataset.id||'');
     if(target.checked) map.set(key,{id:Number(target.dataset.id),name:target.dataset.name||'',path:target.dataset.path||'',size:Number(target.dataset.size||0)}); else map.delete(key);

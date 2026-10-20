@@ -1,0 +1,48 @@
+name: ix2 v1.4.0 UI parity candidate
+
+on:
+  push:
+    branches:
+      - port/v1.4.0-ui-parity
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-build:
+    name: Validate and build ARMv5 ix2 candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch and pin upstream ix2 release
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 --max-time 90 \
+            -o base-rc1.zip \
+            'https://github.com/gigabytegrove/zero1local-ix2/releases/download/v0.9.0-rc1/Zero1Local-ix2-0.9.0-rc1-update.zip'
+          echo 'd59748e47cc3f8ea6baea677cb03848748c40a457671fd21293e79b2825653b6  base-rc1.zip' | sha256sum -c -
+      - name: Build rollback-protected compatibility package
+        run: |
+          set -euo pipefail
+          python3 tools/build-ix2-v140.py \
+            --base-zip base-rc1.zip \
+            --frontend-dir frontend/ix2/web \
+            --out Zero1Local-ix2-0.9.1-rc2-update.zip
+          sha256sum Zero1Local-ix2-0.9.1-rc2-update.zip > Zero1Local-ix2-0.9.1-rc2-update.zip.sha256
+      - name: Offline qualification
+        run: |
+          set -euo pipefail
+          python3 tests/test-ix2-rc2.py Zero1Local-ix2-0.9.1-rc2-update.zip
+          python3 tools/check-v140-ui-parity.py frontend/ix2/web
+          unzip -t Zero1Local-ix2-0.9.1-rc2-update.zip | tail -1
+      - name: Upload candidate artifact (NOT a GitHub release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zero1Local-ix2-0.9.1-rc2-NOT-HARDWARE-QUALIFIED
+          path: |
+            Zero1Local-ix2-0.9.1-rc2-update.zip
+            Zero1Local-ix2-0.9.1-rc2-update.zip.sha256
+          if-no-files-found: error
+          retention-days: 7
