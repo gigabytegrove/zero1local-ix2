@@ -36,6 +36,7 @@ jobs:
           set -euo pipefail
           python3 tests/test-ix2-rc2.py Zero1Local-ix2-0.9.1-rc2-update.zip
           python3 tests/test-upgrade-transaction.py Zero1Local-ix2-0.9.1-rc2-update.zip
+          python3 tests/test-ix2-http-smoke.py Zero1Local-ix2-0.9.1-rc2-update.zip
           python3 tools/check-v140-ui-parity.py frontend/ix2/web
           unzip -t Zero1Local-ix2-0.9.1-rc2-update.zip | tail -1
       - name: Upload candidate artifact (NOT a GitHub release)
