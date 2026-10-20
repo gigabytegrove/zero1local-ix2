@@ -22,6 +22,12 @@ def case(fail):
         shell=installer.read_text()
         shell=shell.replace('ROOT=/mnt/system/zero1local-ix2','ROOT='+str(base))
         shell=shell.replace('INIT=/etc/init.d/zero1local-ix2','INIT='+str(init))
+        # Only the isolated simulation bypasses root ownership requirements;
+        # the release's real shell installer remains strictly root-only.
+        shell=shell.replace('[ "$(id -u)" -eq 0 ]','[ 0 -eq 0 ]')
+        shell=shell.replace('PY=/mnt/apps/usr/bin/python2.7','PY=$(command -v python3)')
+        shell=shell.replace('assert st.st_uid==0 and not(st.st_mode & 0o022)',
+                            'assert st.st_uid==os.getuid() and not(st.st_mode & 0o022)')
         shell=shell.replace('case "$(uname -m)"','case "armv5tel"')
         shell=shell.replace('case "$(uname -r)"','case "2.6.31.8"')
         shell=shell.replace('[ -d /mnt/system ] && [ -d /mnt/pools ]','[ -d "'+str(base)+'" ] && [ -d "'+str(base)+'" ]')
