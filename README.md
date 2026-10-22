@@ -1,5 +1,18 @@
 # Zero1Local-ix2
 
+<!-- GIGABYTE GROVE REPOSITORY BADGES START -->
+<p align="center">
+  <a href="https://github.com/gigabytegrove/zero1local-ix2"><img alt="GitHub repository" src="https://img.shields.io/badge/GitHub-Repository-181717?logo=github&logoColor=white"></a>
+  <a href="https://github.com/gigabytegrove/zero1local-ix2/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/gigabytegrove/zero1local-ix2?style=flat&label=Stars&logo=github"></a>
+  <a href="https://github.com/gigabytegrove/zero1local-ix2/issues"><img alt="Issues" src="https://img.shields.io/badge/Issues-View-555555?logo=github"></a>
+  <a href="https://github.com/gigabytegrove/zero1local-ix2/releases"><img alt="Releases" src="https://img.shields.io/badge/Releases-View-555555?logo=github"></a>
+  <a href="https://paypal.me/gigabytegrove"><img alt="Donate via PayPal" src="https://img.shields.io/badge/Donate-PayPal-0070BA?logo=paypal&logoColor=white"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/gigabytegrove/zero1local-ix2">Repository</a> · <a href="https://github.com/gigabytegrove/zero1local-ix2/stargazers">Stars</a> · <a href="https://github.com/gigabytegrove/zero1local-ix2/issues">Issues</a> · <a href="https://github.com/gigabytegrove/zero1local-ix2/releases">Releases</a> · <a href="https://paypal.me/gigabytegrove">Donate via PayPal</a>
+</p>
+<!-- GIGABYTE GROVE REPOSITORY BADGES END -->
+
 **Zero1Local-ix2** is a local-first replacement management environment for the Lenovo/Iomega ix2 NAS.
 
 The project ports the established Zero1Local management UI and appliance model to the older Marvell Kirkwood / ARMv5 ix2 hardware while removing features that do not fit the platform, such as Docker and heavyweight container applications.
