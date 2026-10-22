@@ -108,3 +108,7 @@ Zero1Local-ix2 will **not** embed a native Google Drive OAuth or synchronization
 ## License
 
 License information will be published with the public project.
+
+## Support Gigabyte Grove
+
+If this project is useful to you, you can support ongoing Gigabyte Grove development with an optional [PayPal donation](https://paypal.me/gigabytegrove). Donations are appreciated but never required to use this repository.
